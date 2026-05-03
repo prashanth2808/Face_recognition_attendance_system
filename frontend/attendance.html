@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mark Attendance — FaceAttend</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        .page-inner {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 0.3rem;
+        }
+
+        .page-header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        @media (max-width: 640px) {
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Session info */
+        .session-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem 1.2rem;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+        }
+
+        .session-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .session-label {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .session-value {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* Status display */
+        .status-display {
+            text-align: center;
+            padding: 2rem 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.2rem;
+            transition: all 0.4s;
+        }
+
+        .status-display.idle {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+        }
+
+        .status-display.scanning {
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .status-display.success {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-display.failed {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .status-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+        }
+
+        .status-sub {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        /* Success result card */
+        .result-card {
+            background: rgba(16, 185, 129, 0.06);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            border-radius: 12px;
+            padding: 1.2rem;
+            display: none;
+        }
+
+        .result-card.show {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.85rem;
+        }
+
+        .result-row:last-child {
+            border-bottom: none;
+        }
+
+        .result-key {
+            color: var(--text-muted);
+        }
+
+        .result-value {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        /* Cam controls */
+        .cam-controls {
+            display: flex;
+            gap: 0.7rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .cam-controls .btn {
+            flex: 1;
+            justify-content: center;
+        }
+
+        /* Scan button - big */
+        .scan-btn {
+            width: 100%;
+            padding: 1.1rem;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            justify-content: center;
+            margin-top: 1.2rem;
+            letter-spacing: 0.02em;
+        }
+
+        /* Session form */
+        .form-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Live clock */
+        .live-clock {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--accent);
+            text-align: center;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.2rem;
+        }
+
+        .live-date {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 1.2rem;
+        }
+
+        /* Recent attendance log */
+        .log-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.8rem;
+            margin-top: 1.5rem;
+        }
+
+        .log-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .log-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.7rem 0.9rem;
+            background: var(--surface2);
+            border-radius: 8px;
+            font-size: 0.82rem;
+            border: 1px solid var(--border);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .log-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            flex-shrink: 0;
+            box-shadow: 0 0 6px var(--success);
+        }
+
+        .log-name {
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .log-time {
+            color: var(--text-muted);
+            font-size: 0.76rem;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAV -->
+    <nav>
+        <a href="index.html" class="nav-logo"><span>⬡</span> Face<span>Attend</span></a>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="register.html">Register</a>
+            <a href="attendance.html" class="active">Attendance</a>
+        </div>
+    </nav>
+
+    <div class="page">
+        <div class="page-inner">
+
+            <!-- Header -->
+            <div class="page-header">
+                <h1>Mark Attendance</h1>
+                <p>Look at the camera to verify your identity and mark attendance</p>
+            </div>
+
+            <div class="two-col">
+
+                <!-- LEFT: Camera -->
+                <div>
+                    <div class="card">
+                        <!-- Session Info Bar -->
+                        <div class="session-card" id="sessionBar" style="display:none">
+                            <div class="session-info">
+                                <span class="session-label">Subject</span>
+                                <span class="session-value" id="activeSubject">—</span>
+                            </div>
+                            <div class="session-info">
+                                <span class="session-label">Date</span>
+                                <span class="session-value" id="activeDate">—</span>
+                            </div>
+                            <div class="session-info">
+                                <span class="session-label">Session</span>
+                                <span class="session-value" id="activePeriod">—</span>
+                            </div>
+                            <span class="badge badge-green" id="sessionStatus">● Active</span>
+                        </div>
+
+                        <!-- Webcam Box -->
+                        <div class="webcam-box" id="webcamBox">
+                            <div class="webcam-placeholder" id="placeholder">
+                                <div class="icon">📷</div>
+                                <p style="font-size:0.85rem">Camera not started</p>
+                            </div>
+                            <video id="video" autoplay playsinline style="display:none"></video>
+                            <canvas id="overlay" style="display:none"></canvas>
+                            <div class="scan-line" id="scanLine" style="display:none"></div>
+                        </div>
+
+                        <!-- Camera Controls -->
+                        <div class="cam-controls">
+                            <button class="btn btn-secondary" id="startCamBtn" onclick="startCamera()">▶ Start
+                                Camera</button>
+                            <button class="btn btn-secondary" id="stopCamBtn" onclick="stopCamera()" disabled>⏹
+                                Stop</button>
+                        </div>
+
+                        <!-- Scan Button -->
+                        <button class="btn btn-primary scan-btn" id="scanBtn" onclick="markAttendance()" disabled>
+                            🔍 Scan Face & Mark Attendance
+                        </button>
+
+                        <!-- Alert -->
+                        <div id="alertBox" style="margin-top:0.8rem"></div>
+                    </div>
+                </div>
+
+                <!-- RIGHT: Session + Status -->
+                <div>
+
+                    <!-- Live Clock -->
+                    <div class="card" style="margin-bottom:1.2rem">
+                        <div class="live-clock" id="clock">--:--:--</div>
+                        <div class="live-date" id="dateDisplay">Loading...</div>
+                    </div>
+
+                    <!-- Session Setup -->
+                    <div class="card" id="sessionSetup">
+                        <div class="form-title">📋 Session Details</div>
+
+                        <div class="form-group">
+                            <label>Subject</label>
+                            <select id="subjectSelect">
+                                <option value="">-- Select Subject --</option>
+                                <option>Data Structures</option>
+                                <option>Operating Systems</option>
+                                <option>Database Management</option>
+                                <option>Computer Networks</option>
+                                <option>Software Engineering</option>
+                                <option>Machine Learning</option>
+                                <option>Web Development</option>
+                                <option>Theory of Computation</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Period / Session</label>
+                            <select id="periodSelect">
+                                <option value="">-- Select Period --</option>
+                                <option>Period 1 (8:00 - 9:00)</option>
+                                <option>Period 2 (9:00 - 10:00)</option>
+                                <option>Period 3 (10:00 - 11:00)</option>
+                                <option>Period 4 (11:00 - 12:00)</option>
+                                <option>Period 5 (1:00 - 2:00)</option>
+                                <option>Period 6 (2:00 - 3:00)</option>
+                                <option>Period 7 (3:00 - 4:00)</option>
+                            </select>
+                        </div>
+
+                        <button class="btn btn-primary" style="width:100%; justify-content:center; margin-top:0.5rem"
+                            onclick="startSession()">
+                            ▶ Start Session
+                        </button>
+                    </div>
+
+                    <!-- Status Display (shown after scanning) -->
+                    <div class="status-display idle" id="statusDisplay" style="display:none">
+                        <div class="status-icon" id="statusIcon">👤</div>
+                        <div class="status-title" id="statusTitle">Ready to Scan</div>
+                        <div class="status-sub" id="statusSub">Click "Scan Face" to mark attendance</div>
+                    </div>
+
+                    <!-- Result Card -->
+                    <div class="result-card" id="resultCard">
+                        <div class="result-row">
+                            <span class="result-key">Name</span>
+                            <span class="result-value" id="resultName">—</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-key">Roll No</span>
+                            <span class="result-value" id="resultRoll">—</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-key">Subject</span>
+                            <span class="result-value" id="resultSubject">—</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-key">Time</span>
+                            <span class="result-value" id="resultTime">—</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-key">Status</span>
+                            <span class="result-value" style="color:var(--success)">✅ Present</span>
+                        </div>
+                    </div>
+
+                    <!-- Recent Log -->
+                    <div id="logSection" style="display:none">
+                        <div class="log-title">Recent Marks</div>
+                        <div class="log-list" id="logList"></div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ── State ────────────────────────────────────
+        let stream = null;
+        let sessionActive = false;
+        let currentSubject = '';
+        let currentPeriod = '';
+        const attendanceLog = [];
+
+        // ── Clock ────────────────────────────────────
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent =
+                now.toLocaleTimeString('en-IN', { hour12: false });
+            document.getElementById('dateDisplay').textContent =
+                now.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // ── Session ──────────────────────────────────
+        function startSession() {
+            const subject = document.getElementById('subjectSelect').value;
+            const period = document.getElementById('periodSelect').value;
+
+            if (!subject || !period) {
+                alert('Please select a subject and period first.');
+                return;
+            }
+
+            currentSubject = subject;
+            currentPeriod = period;
+            sessionActive = true;
+
+            // Show session bar
+            document.getElementById('activeSubject').textContent = subject;
+            document.getElementById('activeDate').textContent = new Date().toLocaleDateString('en-IN');
+            document.getElementById('activePeriod').textContent = period;
+            document.getElementById('sessionBar').style.display = 'flex';
+
+            // Hide session setup, show status
+            document.getElementById('sessionSetup').style.display = 'none';
+            document.getElementById('statusDisplay').style.display = 'block';
+            document.getElementById('logSection').style.display = 'block';
+
+            if (stream) document.getElementById('scanBtn').disabled = false;
+        }
+
+        // ── Camera ───────────────────────────────────
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480, facingMode: 'user' }
+                });
+
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                video.style.display = 'block';
+                document.getElementById('placeholder').style.display = 'none';
+                document.getElementById('scanLine').style.display = 'block';
+
+                document.getElementById('startCamBtn').disabled = true;
+                document.getElementById('stopCamBtn').disabled = false;
+
+                if (sessionActive) document.getElementById('scanBtn').disabled = false;
+
+            } catch (err) {
+                showAlert('error', '❌ Camera access denied. Please allow camera permission.');
+            }
+        }
+
+        function stopCamera() {
+            if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+            document.getElementById('video').style.display = 'none';
+            document.getElementById('placeholder').style.display = 'flex';
+            document.getElementById('scanLine').style.display = 'none';
+            document.getElementById('startCamBtn').disabled = false;
+            document.getElementById('stopCamBtn').disabled = true;
+            document.getElementById('scanBtn').disabled = true;
+        }
+
+        // ── Mark Attendance ───────────────────────────
+        async function markAttendance() {
+            if (!stream) { showAlert('error', '❌ Camera is not started.'); return; }
+            if (!sessionActive) { showAlert('warn', '⚠️ Please start a session first.'); return; }
+
+            // Capture frame
+            const video = document.getElementById('video');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+
+            // Show scanning state
+            setStatus('scanning', '🔍', 'Scanning...', 'Analyzing your face, please hold still...');
+
+            const btn = document.getElementById('scanBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Scanning...';
+
+            try {
+                const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.8));
+                const formData = new FormData();
+                formData.append('photo', blob, 'frame.jpg');
+                formData.append('subject', currentSubject);
+                formData.append('period', currentPeriod);
+
+                // ── API call to backend ──
+                const BACKEND_URL = 'http://localhost:8000'; // change when deployed
+                const response = await fetch(`${BACKEND_URL}/attendance`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.recognized) {
+                    // Success
+                    setStatus('success', '✅', `Welcome, ${result.name}!`, 'Attendance marked successfully');
+                    showResult(result);
+                    addToLog(result.name, result.roll_no);
+                    showAlert('success', `✅ Attendance marked for ${result.name} (${result.roll_no})`);
+
+                } else if (response.ok && !result.recognized) {
+                    setStatus('failed', '❌', 'Face Not Recognized', 'Your face was not found. Are you registered?');
+                    showAlert('error', '❌ Face not recognized. Please register first or try again in better lighting.');
+
+                } else {
+                    throw new Error(result.detail || 'Recognition failed');
+                }
+
+            } catch (err) {
+                setStatus('failed', '⚠️', 'Error', err.message);
+                showAlert('error', `❌ ${err.message}`);
+            } finally {
+                // Re-enable after 3 seconds
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = '🔍 Scan Face & Mark Attendance';
+                }, 3000);
+            }
+        }
+
+        // ── UI Helpers ───────────────────────────────
+        function setStatus(type, icon, title, sub) {
+            const el = document.getElementById('statusDisplay');
+            el.className = `status-display ${type}`;
+            document.getElementById('statusIcon').textContent = icon;
+            document.getElementById('statusTitle').textContent = title;
+            document.getElementById('statusSub').textContent = sub;
+        }
+
+        function showResult(result) {
+            const card = document.getElementById('resultCard');
+            document.getElementById('resultName').textContent = result.name || '—';
+            document.getElementById('resultRoll').textContent = result.roll_no || '—';
+            document.getElementById('resultSubject').textContent = currentSubject;
+            document.getElementById('resultTime').textContent = new Date().toLocaleTimeString('en-IN');
+            card.classList.add('show');
+        }
+
+        function addToLog(name, rollNo) {
+            const time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+            const item = document.createElement('div');
+            item.className = 'log-item';
+            item.innerHTML = `
+        <div class="log-dot"></div>
+        <span class="log-name">${name} <span style="color:var(--text-muted);font-weight:400">(${rollNo})</span></span>
+        <span class="log-time">${time}</span>
+      `;
+            document.getElementById('logList').prepend(item);
+        }
+
+        function showAlert(type, message) {
+            const el = document.getElementById('alertBox');
+            el.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => { el.innerHTML = ''; }, 5000);
+        }
+    </script>
+
+</body>
+
+</html>
