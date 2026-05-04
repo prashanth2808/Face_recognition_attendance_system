@@ -4,7 +4,7 @@ FaceAttend is a modern, smart attendance system that uses state-of-the-art face 
 
 ## Features
 
-*   **Instant Face Recognition**: Uses the Facenet model (via `deepface`) to recognize faces in under 2 seconds.
+*   **Instant Face Recognition**: Uses the `deepface` library to recognize faces in under 2 seconds (default: Facenet, easily configurable to DeepFace, VGG-Face, etc).
 *   **Liveness Detection**: Integrated MediaPipe face mesh on the frontend to detect natural eye blinking, preventing spoofing with static photos.
 *   **Tamper-Proof**: No proxy attendance possible. The system uniquely identifies each student.
 *   **Automated Reports**: Generates attendance records stored securely in a Supabase database.
@@ -19,7 +19,7 @@ FaceAttend is a modern, smart attendance system that uses state-of-the-art face 
 
 ### Backend
 *   [FastAPI](https://fastapi.tiangolo.com/) (High-performance Python web framework)
-*   [DeepFace](https://github.com/serengil/deepface) (Facenet model for face embeddings)
+*   [DeepFace](https://github.com/serengil/deepface) (For configurable face embeddings and matching)
 *   [OpenCV](https://opencv.org/) (Face detection)
 *   [Supabase](https://supabase.com/) (PostgreSQL Database as a Service)
 
@@ -79,5 +79,10 @@ Face_attendance/
 
 ## How it Works
 
-1.  **Registration**: A student enters their details and turns on the camera. The frontend verifies they are a live person by asking them to blink twice. Once liveness is confirmed, it captures 3 photos. These photos are sent to the backend, which extracts face embeddings using DeepFace, averages them, and saves the student profile to Supabase.
+1.  **Registration**: A student enters their details and turns on the camera. The frontend verifies they are a live person by asking them to blink twice. Once liveness is confirmed, it captures 3 photos. These photos are sent to the backend, which extracts face embeddings using DeepFace (via the Facenet model), averages them, and saves the student profile to Supabase.
 2.  **Attendance**: The student looks at the camera on the attendance page. A photo is sent to the backend, which extracts the face embedding and compares it against all registered students using Euclidean distance. If a match is found within the threshold, attendance is marked in the database.
+
+## Troubleshooting & Important Notes
+
+*   **Changing Face Models (`MODEL_NAME`)**: If you change the model in `backend/face_engine.py` (e.g., from `Facenet` to `DeepFace` or `VGG-Face`), **you must clear your database and have all students re-register**. 
+    *   **Why?** Different models generate mathematical embeddings in completely different formats and sizes. An embedding created by `Facenet` cannot be mathematically compared to one created by `DeepFace`. Attempting to do so will result in failed recognitions or dimension mismatch errors.
