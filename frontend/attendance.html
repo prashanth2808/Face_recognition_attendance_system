@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mark Attendance — FaceAttend</title>
     <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <style>
         .page-inner {
             max-width: 960px;
@@ -42,7 +44,145 @@
             }
         }
 
-        /* Session info */
+        .form-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* ── Liveness Box ── */
+        .liveness-box {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.2rem;
+            margin-bottom: 1.2rem;
+            transition: all 0.4s;
+        }
+
+        .liveness-box.blinking {
+            border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.08);
+        }
+
+        .liveness-box.passed {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.08);
+        }
+
+        .liveness-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.8rem;
+        }
+
+        .liveness-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 700;
+        }
+
+        .liveness-status {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .blink-dots {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .blink-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            transition: all 0.3s;
+        }
+
+        .blink-dot.done {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .blink-dot.active {
+            border-color: var(--accent);
+            animation: pulse-dot 0.8s infinite;
+        }
+
+        @keyframes pulse-dot {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+            }
+        }
+
+        .ear-bar-wrap {
+            margin-top: 0.6rem;
+        }
+
+        .ear-label {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-bottom: 0.3rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .ear-bar {
+            height: 4px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .ear-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.1s, background 0.2s;
+            background: var(--accent);
+        }
+
+        .liveness-instruction {
+            text-align: center;
+            padding: 0.6rem;
+            font-size: 0.82rem;
+            color: var(--accent);
+            font-weight: 600;
+            margin-top: 0.5rem;
+            animation: blink-text 1.2s infinite;
+        }
+
+        @keyframes blink-text {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        /* ── Session ── */
         .session-card {
             background: var(--surface2);
             border: 1px solid var(--border);
@@ -74,7 +214,7 @@
             font-size: 0.9rem;
         }
 
-        /* Status display */
+        /* ── Status Display ── */
         .status-display {
             text-align: center;
             padding: 2rem 1rem;
@@ -120,7 +260,7 @@
             color: var(--text-muted);
         }
 
-        /* Success result card */
+        /* ── Result Card ── */
         .result-card {
             background: rgba(16, 185, 129, 0.06);
             border: 1px solid rgba(16, 185, 129, 0.25);
@@ -153,10 +293,9 @@
 
         .result-value {
             font-weight: 600;
-            color: var(--text);
         }
 
-        /* Cam controls */
+        /* ── Camera Controls ── */
         .cam-controls {
             display: flex;
             gap: 0.7rem;
@@ -169,7 +308,6 @@
             justify-content: center;
         }
 
-        /* Scan button - big */
         .scan-btn {
             width: 100%;
             padding: 1.1rem;
@@ -181,17 +319,7 @@
             letter-spacing: 0.02em;
         }
 
-        /* Session form */
-        .form-title {
-            font-family: 'Syne', sans-serif;
-            font-size: 1rem;
-            font-weight: 700;
-            margin-bottom: 1.2rem;
-            padding-bottom: 0.8rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        /* Live clock */
+        /* ── Clock ── */
         .live-clock {
             font-family: 'Syne', sans-serif;
             font-size: 1.6rem;
@@ -209,7 +337,7 @@
             margin-bottom: 1.2rem;
         }
 
-        /* Recent attendance log */
+        /* ── Log ── */
         .log-title {
             font-family: 'Syne', sans-serif;
             font-size: 0.85rem;
@@ -274,7 +402,6 @@
 
 <body>
 
-    <!-- NAV -->
     <nav>
         <a href="index.html" class="nav-logo"><span>⬡</span> Face<span>Attend</span></a>
         <div class="nav-links">
@@ -287,10 +414,9 @@
     <div class="page">
         <div class="page-inner">
 
-            <!-- Header -->
             <div class="page-header">
                 <h1>Mark Attendance</h1>
-                <p>Look at the camera to verify your identity and mark attendance</p>
+                <p>Blink twice to verify you're real, then scan your face to mark attendance</p>
             </div>
 
             <div class="two-col">
@@ -298,31 +424,48 @@
                 <!-- LEFT: Camera -->
                 <div>
                     <div class="card">
-                        <!-- Session Info Bar -->
+
+                        <!-- Session bar (shown after session starts) -->
                         <div class="session-card" id="sessionBar" style="display:none">
-                            <div class="session-info">
-                                <span class="session-label">Subject</span>
-                                <span class="session-value" id="activeSubject">—</span>
-                            </div>
-                            <div class="session-info">
-                                <span class="session-label">Date</span>
-                                <span class="session-value" id="activeDate">—</span>
-                            </div>
-                            <div class="session-info">
-                                <span class="session-label">Session</span>
-                                <span class="session-value" id="activePeriod">—</span>
-                            </div>
-                            <span class="badge badge-green" id="sessionStatus">● Active</span>
+                            <div class="session-info"><span class="session-label">Subject</span><span
+                                    class="session-value" id="activeSubject">—</span></div>
+                            <div class="session-info"><span class="session-label">Date</span><span class="session-value"
+                                    id="activeDate">—</span></div>
+                            <div class="session-info"><span class="session-label">Period</span><span
+                                    class="session-value" id="activePeriod">—</span></div>
+                            <span class="badge badge-green">● Active</span>
                         </div>
 
-                        <!-- Webcam Box -->
+                        <!-- Liveness Box -->
+                        <div class="liveness-box" id="livenessBox">
+                            <div class="liveness-header">
+                                <span class="liveness-title">👁️ Liveness Detection</span>
+                                <span class="liveness-status" id="livenessStatusText">Start camera to begin</span>
+                            </div>
+                            <div style="display:flex; align-items:center; justify-content:space-between;">
+                                <div class="blink-dots">
+                                    <div class="blink-dot" id="dot0">1</div>
+                                    <div class="blink-dot" id="dot1">2</div>
+                                </div>
+                                <span id="livenessPassedBadge" class="badge badge-green hidden">✅ Live Person</span>
+                            </div>
+                            <div class="ear-bar-wrap">
+                                <div class="ear-label"><span>Eye Openness</span><span id="earValue">—</span></div>
+                                <div class="ear-bar">
+                                    <div class="ear-fill" id="earFill" style="width:0%"></div>
+                                </div>
+                            </div>
+                            <div class="liveness-instruction hidden" id="blinkInstruction">👁️ Please blink naturally to
+                                verify liveness...</div>
+                        </div>
+
+                        <!-- Webcam -->
                         <div class="webcam-box" id="webcamBox">
                             <div class="webcam-placeholder" id="placeholder">
                                 <div class="icon">📷</div>
                                 <p style="font-size:0.85rem">Camera not started</p>
                             </div>
                             <video id="video" autoplay playsinline style="display:none"></video>
-                            <canvas id="overlay" style="display:none"></canvas>
                             <div class="scan-line" id="scanLine" style="display:none"></div>
                         </div>
 
@@ -339,7 +482,6 @@
                             🔍 Scan Face & Mark Attendance
                         </button>
 
-                        <!-- Alert -->
                         <div id="alertBox" style="margin-top:0.8rem"></div>
                     </div>
                 </div>
@@ -347,7 +489,7 @@
                 <!-- RIGHT: Session + Status -->
                 <div>
 
-                    <!-- Live Clock -->
+                    <!-- Clock -->
                     <div class="card" style="margin-bottom:1.2rem">
                         <div class="live-clock" id="clock">--:--:--</div>
                         <div class="live-date" id="dateDisplay">Loading...</div>
@@ -356,7 +498,6 @@
                     <!-- Session Setup -->
                     <div class="card" id="sessionSetup">
                         <div class="form-title">📋 Session Details</div>
-
                         <div class="form-group">
                             <label>Subject</label>
                             <select id="subjectSelect">
@@ -371,7 +512,6 @@
                                 <option>Theory of Computation</option>
                             </select>
                         </div>
-
                         <div class="form-group">
                             <label>Period / Session</label>
                             <select id="periodSelect">
@@ -385,45 +525,34 @@
                                 <option>Period 7 (3:00 - 4:00)</option>
                             </select>
                         </div>
-
                         <button class="btn btn-primary" style="width:100%; justify-content:center; margin-top:0.5rem"
                             onclick="startSession()">
                             ▶ Start Session
                         </button>
                     </div>
 
-                    <!-- Status Display (shown after scanning) -->
+                    <!-- Status Display -->
                     <div class="status-display idle" id="statusDisplay" style="display:none">
                         <div class="status-icon" id="statusIcon">👤</div>
                         <div class="status-title" id="statusTitle">Ready to Scan</div>
-                        <div class="status-sub" id="statusSub">Click "Scan Face" to mark attendance</div>
+                        <div class="status-sub" id="statusSub">Blink 2 times, then click Scan</div>
                     </div>
 
                     <!-- Result Card -->
                     <div class="result-card" id="resultCard">
-                        <div class="result-row">
-                            <span class="result-key">Name</span>
-                            <span class="result-value" id="resultName">—</span>
-                        </div>
-                        <div class="result-row">
-                            <span class="result-key">Roll No</span>
-                            <span class="result-value" id="resultRoll">—</span>
-                        </div>
-                        <div class="result-row">
-                            <span class="result-key">Subject</span>
-                            <span class="result-value" id="resultSubject">—</span>
-                        </div>
-                        <div class="result-row">
-                            <span class="result-key">Time</span>
-                            <span class="result-value" id="resultTime">—</span>
-                        </div>
-                        <div class="result-row">
-                            <span class="result-key">Status</span>
-                            <span class="result-value" style="color:var(--success)">✅ Present</span>
-                        </div>
+                        <div class="result-row"><span class="result-key">Name</span> <span class="result-value"
+                                id="resultName">—</span></div>
+                        <div class="result-row"><span class="result-key">Roll No</span><span class="result-value"
+                                id="resultRoll">—</span></div>
+                        <div class="result-row"><span class="result-key">Subject</span><span class="result-value"
+                                id="resultSubject">—</span></div>
+                        <div class="result-row"><span class="result-key">Time</span> <span class="result-value"
+                                id="resultTime">—</span></div>
+                        <div class="result-row"><span class="result-key">Status</span> <span class="result-value"
+                                style="color:var(--success)">✅ Present</span></div>
                     </div>
 
-                    <!-- Recent Log -->
+                    <!-- Log -->
                     <div id="logSection" style="display:none">
                         <div class="log-title">Recent Marks</div>
                         <div class="log-list" id="logList"></div>
@@ -431,74 +560,129 @@
 
                 </div>
             </div>
-
         </div>
     </div>
 
     <script>
-        // ── State ────────────────────────────────────
+        // ── State ─────────────────────────────────────
         let stream = null;
+        let faceMesh = null;
+        let mpCamera = null;
         let sessionActive = false;
         let currentSubject = '';
         let currentPeriod = '';
-        const attendanceLog = [];
+        let blinkCount = 0;
+        let livenessOK = false;
+        let eyeWasClosed = false;
 
-        // ── Clock ────────────────────────────────────
+        const BLINKS_NEEDED = 2;
+        const EAR_THRESHOLD = 0.22;
+        const LEFT_EYE = [33, 160, 158, 133, 153, 144];
+        const RIGHT_EYE = [362, 385, 387, 263, 373, 380];
+
+        // ── Clock ──────────────────────────────────────
         function updateClock() {
             const now = new Date();
-            document.getElementById('clock').textContent =
-                now.toLocaleTimeString('en-IN', { hour12: false });
-            document.getElementById('dateDisplay').textContent =
-                now.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('clock').textContent = now.toLocaleTimeString('en-IN', { hour12: false });
+            document.getElementById('dateDisplay').textContent = now.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
         updateClock();
         setInterval(updateClock, 1000);
 
-        // ── Session ──────────────────────────────────
+        // ── Session ────────────────────────────────────
         function startSession() {
             const subject = document.getElementById('subjectSelect').value;
             const period = document.getElementById('periodSelect').value;
-
-            if (!subject || !period) {
-                alert('Please select a subject and period first.');
-                return;
-            }
+            if (!subject || !period) { alert('Please select a subject and period first.'); return; }
 
             currentSubject = subject;
             currentPeriod = period;
             sessionActive = true;
 
-            // Show session bar
             document.getElementById('activeSubject').textContent = subject;
             document.getElementById('activeDate').textContent = new Date().toLocaleDateString('en-IN');
             document.getElementById('activePeriod').textContent = period;
             document.getElementById('sessionBar').style.display = 'flex';
-
-            // Hide session setup, show status
             document.getElementById('sessionSetup').style.display = 'none';
             document.getElementById('statusDisplay').style.display = 'block';
             document.getElementById('logSection').style.display = 'block';
 
-            if (stream) document.getElementById('scanBtn').disabled = false;
+            // Enable scan only if liveness passed AND camera is on
+            if (livenessOK && stream) document.getElementById('scanBtn').disabled = false;
         }
 
-        // ── Camera ───────────────────────────────────
+        // ── EAR ────────────────────────────────────────
+        function getEAR(lm, idx) {
+            const p = (i) => lm[i];
+            const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+            return (dist(p(idx[1]), p(idx[5])) + dist(p(idx[2]), p(idx[4]))) / (2.0 * dist(p(idx[0]), p(idx[3])));
+        }
+
+        // ── MediaPipe ──────────────────────────────────
+        function initFaceMesh() {
+            faceMesh = new FaceMesh({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}` });
+            faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+            faceMesh.onResults(onFaceResults);
+        }
+
+        function onFaceResults(results) {
+            if (!results.multiFaceLandmarks?.length || livenessOK) return;
+            const lm = results.multiFaceLandmarks[0];
+            const avgEAR = (getEAR(lm, LEFT_EYE) + getEAR(lm, RIGHT_EYE)) / 2;
+
+            const pct = Math.min(100, (avgEAR / 0.4) * 100);
+            document.getElementById('earFill').style.width = pct + '%';
+            document.getElementById('earFill').style.background = avgEAR < EAR_THRESHOLD ? 'var(--accent2)' : 'var(--accent)';
+            document.getElementById('earValue').textContent = avgEAR.toFixed(3);
+
+            if (avgEAR < EAR_THRESHOLD) {
+                eyeWasClosed = true;
+            } else if (eyeWasClosed) {
+                eyeWasClosed = false;
+                blinkCount++;
+                updateBlinkDots();
+                if (blinkCount >= BLINKS_NEEDED) livenessConfirmed();
+            }
+        }
+
+        function updateBlinkDots() {
+            for (let i = 0; i < BLINKS_NEEDED; i++) {
+                const dot = document.getElementById(`dot${i}`);
+                if (i < blinkCount) { dot.classList.add('done'); dot.classList.remove('active'); dot.textContent = '✓'; }
+                else if (i === blinkCount) dot.classList.add('active');
+            }
+        }
+
+        function livenessConfirmed() {
+            livenessOK = true;
+            const box = document.getElementById('livenessBox');
+            box.classList.remove('blinking'); box.classList.add('passed');
+            document.getElementById('livenessStatusText').textContent = 'Liveness confirmed!';
+            document.getElementById('livenessPassedBadge').classList.remove('hidden');
+            document.getElementById('blinkInstruction').classList.add('hidden');
+            if (sessionActive) document.getElementById('scanBtn').disabled = false;
+            showAlert('success', '✅ Liveness confirmed! Now click Scan to mark attendance.');
+        }
+
+        // ── Camera ─────────────────────────────────────
         async function startCamera() {
             try {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: 640, height: 480, facingMode: 'user' }
-                });
-
+                stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' } });
                 const video = document.getElementById('video');
-                video.srcObject = stream;
-                video.style.display = 'block';
+                video.srcObject = stream; video.style.display = 'block';
                 document.getElementById('placeholder').style.display = 'none';
                 document.getElementById('scanLine').style.display = 'block';
-
                 document.getElementById('startCamBtn').disabled = true;
                 document.getElementById('stopCamBtn').disabled = false;
 
-                if (sessionActive) document.getElementById('scanBtn').disabled = false;
+                document.getElementById('livenessBox').classList.add('blinking');
+                document.getElementById('livenessStatusText').textContent = `Blink ${BLINKS_NEEDED} times`;
+                document.getElementById('blinkInstruction').classList.remove('hidden');
+                document.getElementById('dot0').classList.add('active');
+
+                initFaceMesh();
+                mpCamera = new Camera(video, { onFrame: async () => { await faceMesh.send({ image: video }); }, width: 640, height: 480 });
+                mpCamera.start();
 
             } catch (err) {
                 showAlert('error', '❌ Camera access denied. Please allow camera permission.');
@@ -506,6 +690,7 @@
         }
 
         function stopCamera() {
+            if (mpCamera) { mpCamera.stop(); mpCamera = null; }
             if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
             document.getElementById('video').style.display = 'none';
             document.getElementById('placeholder').style.display = 'flex';
@@ -513,26 +698,39 @@
             document.getElementById('startCamBtn').disabled = false;
             document.getElementById('stopCamBtn').disabled = true;
             document.getElementById('scanBtn').disabled = true;
+
+            // Reset liveness for next student
+            resetLiveness();
         }
 
-        // ── Mark Attendance ───────────────────────────
+        function resetLiveness() {
+            livenessOK = false; blinkCount = 0; eyeWasClosed = false;
+            document.getElementById('livenessBox').classList.remove('passed', 'blinking');
+            document.getElementById('livenessStatusText').textContent = 'Start camera to begin';
+            document.getElementById('livenessPassedBadge').classList.add('hidden');
+            document.getElementById('blinkInstruction').classList.add('hidden');
+            document.getElementById('earFill').style.width = '0%';
+            document.getElementById('earValue').textContent = '—';
+            for (let i = 0; i < BLINKS_NEEDED; i++) {
+                const dot = document.getElementById(`dot${i}`);
+                dot.classList.remove('done', 'active'); dot.textContent = i + 1;
+            }
+        }
+
+        // ── Mark Attendance ────────────────────────────
         async function markAttendance() {
             if (!stream) { showAlert('error', '❌ Camera is not started.'); return; }
             if (!sessionActive) { showAlert('warn', '⚠️ Please start a session first.'); return; }
+            if (!livenessOK) { showAlert('warn', '⚠️ Liveness check not completed. Blink 2 times first.'); return; }
 
-            // Capture frame
             const video = document.getElementById('video');
             const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
 
-            // Show scanning state
             setStatus('scanning', '🔍', 'Scanning...', 'Analyzing your face, please hold still...');
-
             const btn = document.getElementById('scanBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Scanning...';
+            btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Scanning...';
 
             try {
                 const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.8));
@@ -541,43 +739,40 @@
                 formData.append('subject', currentSubject);
                 formData.append('period', currentPeriod);
 
-                // ── API call to backend ──
-                const BACKEND_URL = 'http://localhost:8000'; // change when deployed
-                const response = await fetch(`${BACKEND_URL}/attendance`, {
-                    method: 'POST',
-                    body: formData
-                });
+                const res = await fetch('http://localhost:8000/attendance', { method: 'POST', body: formData });
+                const result = await res.json();
 
-                const result = await response.json();
-
-                if (response.ok && result.recognized) {
-                    // Success
-                    setStatus('success', '✅', `Welcome, ${result.name}!`, 'Attendance marked successfully');
-                    showResult(result);
-                    addToLog(result.name, result.roll_no);
-                    showAlert('success', `✅ Attendance marked for ${result.name} (${result.roll_no})`);
-
-                } else if (response.ok && !result.recognized) {
-                    setStatus('failed', '❌', 'Face Not Recognized', 'Your face was not found. Are you registered?');
-                    showAlert('error', '❌ Face not recognized. Please register first or try again in better lighting.');
-
+                if (res.ok && result.recognized) {
+                    if (result.duplicate) {
+                        setStatus('failed', '⚠️', 'Already Marked!', `${result.name} already marked for this session.`);
+                        showAlert('warn', `⚠️ Attendance already marked for ${result.name} in this session.`);
+                    } else {
+                        setStatus('success', '✅', `Welcome, ${result.name}!`, 'Attendance marked successfully');
+                        showResult(result);
+                        addToLog(result.name, result.roll_no);
+                        showAlert('success', `✅ Attendance marked for ${result.name} (${result.roll_no})`);
+                    }
                 } else {
-                    throw new Error(result.detail || 'Recognition failed');
+                    setStatus('failed', '❌', 'Face Not Recognized', 'Not found in database. Are you registered?');
+                    showAlert('error', '❌ Face not recognized. Please register first or try in better lighting.');
                 }
+
+                // Reset liveness after each scan so next student must blink again
+                setTimeout(() => {
+                    resetLiveness();
+                    document.getElementById('resultCard').classList.remove('show');
+                    setStatus('idle', '👤', 'Ready to Scan', 'Next student: blink 2 times, then scan');
+                }, 5000);
 
             } catch (err) {
                 setStatus('failed', '⚠️', 'Error', err.message);
                 showAlert('error', `❌ ${err.message}`);
             } finally {
-                // Re-enable after 3 seconds
-                setTimeout(() => {
-                    btn.disabled = false;
-                    btn.innerHTML = '🔍 Scan Face & Mark Attendance';
-                }, 3000);
+                setTimeout(() => { btn.disabled = false; btn.innerHTML = '🔍 Scan Face & Mark Attendance'; }, 5000);
             }
         }
 
-        // ── UI Helpers ───────────────────────────────
+        // ── UI Helpers ─────────────────────────────────
         function setStatus(type, icon, title, sub) {
             const el = document.getElementById('statusDisplay');
             el.className = `status-display ${type}`;
@@ -587,33 +782,27 @@
         }
 
         function showResult(result) {
-            const card = document.getElementById('resultCard');
             document.getElementById('resultName').textContent = result.name || '—';
             document.getElementById('resultRoll').textContent = result.roll_no || '—';
             document.getElementById('resultSubject').textContent = currentSubject;
             document.getElementById('resultTime').textContent = new Date().toLocaleTimeString('en-IN');
-            card.classList.add('show');
+            document.getElementById('resultCard').classList.add('show');
         }
 
         function addToLog(name, rollNo) {
             const time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
             const item = document.createElement('div');
             item.className = 'log-item';
-            item.innerHTML = `
-        <div class="log-dot"></div>
-        <span class="log-name">${name} <span style="color:var(--text-muted);font-weight:400">(${rollNo})</span></span>
-        <span class="log-time">${time}</span>
-      `;
+            item.innerHTML = `<div class="log-dot"></div><span class="log-name">${name} <span style="color:var(--text-muted);font-weight:400">(${rollNo})</span></span><span class="log-time">${time}</span>`;
             document.getElementById('logList').prepend(item);
         }
 
         function showAlert(type, message) {
             const el = document.getElementById('alertBox');
             el.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
-            setTimeout(() => { el.innerHTML = ''; }, 5000);
+            setTimeout(() => { el.innerHTML = ''; }, 6000);
         }
     </script>
-
 </body>
 
 </html>
